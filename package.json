@@ -4,6 +4,7 @@
     "@emotion/styled": "^11.11.5",
     "@mui/material": "^5.15.16",
     "@supabase/supabase-js": "^2.43.0",
-    "antd": "^5.17.0"
+    "antd": "^5.17.0",
+    "moment": "^2.30.1"
   }
 }

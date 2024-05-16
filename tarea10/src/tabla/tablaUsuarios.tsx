@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { getUsuarios } from "../services/users";
-import { Form, Input, Table } from "antd";
+import { getUsuarios, createUsuarios } from "../services/users";
+import { Table, Drawer, Button, Form, Input } from "antd";
 import { User } from "../models/users";
-import { Button, Drawer } from 'antd';
 import DrawerFooter from "./DrawerFooter";
+import supabase from "../utils/supabase";
 
 
 const TablaUsuarios: React.FC = () => {
-
+    const [users, setUser] = useState<User[]>([]);
+    const [nombre, setNombre] = useState<string>('');
     const [open, setOpen] = useState(false);
 
     const showDrawer = () => {
@@ -17,10 +18,6 @@ const TablaUsuarios: React.FC = () => {
     const onClose = () => {
         setOpen(false);
     };
-
-    const [users, setUser] = useState<User[]>([]);
-
-
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -34,7 +31,6 @@ const TablaUsuarios: React.FC = () => {
 
         fetchUser();
     }, []);
-
     const columns = [
         {
             title: 'ID_Usuario',
@@ -61,28 +57,59 @@ const TablaUsuarios: React.FC = () => {
         },
     ];
 
+    const handleSubmit = async () => {
+        const randomID = Math.floor(Math.random() * (5 - 1 + 1)) + 1;
+
+        try {
+            const currentDateTime = new Date();
+            const maxIdResponse = await supabase
+                .from("usuarios")
+                .select("id_usuario")
+                .order("id_usuario", { ascending: false })
+                .limit(1);
+
+            const maxId = maxIdResponse.data?.[0]?.id_usuario || 0;
+            const newId = maxId + 1;
+            // Crear el objeto de dirección con el nuevo ID
+            const UserInput: User = {
+                id_usuario: newId,
+                nombre,
+                fechacreacion: currentDateTime,
+                fk_creadopor: randomID,
+            };
+
+            await createUsuarios(UserInput);
+
+            const updateUser = await getUsuarios();
+            setUser(updateUser);
+            onClose();
+        } catch (error) {
+            console.error("Error creating usuarios:", error);
+        }
+    };
+
     return (
         <>
             <Button type="primary" onClick={showDrawer}>
-                Open
+                Agregar usuario
             </Button>
-            <Drawer title="Basic Drawer" onClose={onClose} open={open} footer={<DrawerFooter />}>
-                <Form>
-                    <Form.Item label="nombre de usuario"
-                        name="nombre">
-                        <Input />
+            <Table columns={columns} dataSource={users} />
+            <Drawer title="Agregar Usuarios" onClose={onClose} open={open} footer={<DrawerFooter createRecord={handleSubmit} />}>
+                <Form onFinish={handleSubmit}>
+                    <Form.Item<User>
+                        label="Nombre"
+                        name="nombre"
+                        rules={[{ required: true, message: "Agrega el nombre" }]}
+                    >
+                        <Input value={nombre} onChange={(e) => setNombre(e.target.value)} />
                     </Form.Item>
-                    <Form.Item label="apellido de usuario"
-                        name="apellido">
-                        <Input />
+
+
+
+                    <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
                     </Form.Item>
                 </Form>
             </Drawer>
-            <Table
-                columns={columns}
-                dataSource={users}
-            />
-
         </>
     );
 }

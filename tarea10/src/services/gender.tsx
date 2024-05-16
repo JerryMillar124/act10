@@ -10,3 +10,7 @@ export const getGenero = async (): Promise<Gender[]> => {
     }
     return data || [];
 }
+export const createGenero = async (genero: Gender): Promise<void> => {
+    const { error } = await supabase.from("genero").insert(genero);
+    if (error) throw error;
+}

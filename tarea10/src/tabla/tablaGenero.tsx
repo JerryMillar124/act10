@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { getGenero } from "../services/gender";
-import { Button, Drawer, Form, Input, Table } from "antd";
+import { getGenero, createGenero } from "../services/gender";
+import { Table, Drawer, Button, Form, Input } from "antd";
 import { Gender } from "../models/gender";
 import DrawerFooter from "./DrawerFooter";
+import supabase from "../utils/supabase";
 
 const TablaGenero: React.FC = () => {
-
+    const [gender, setGender] = useState<Gender[]>([]);
+    const [genero, setGenero] = useState<string>('');
     const [open, setOpen] = useState(false);
 
     const showDrawer = () => {
@@ -15,8 +17,6 @@ const TablaGenero: React.FC = () => {
     const onClose = () => {
         setOpen(false);
     };
-
-    const [gender, setGender] = useState<Gender[]>([]);
 
     useEffect(() => {
         const fetchGender = async () => {
@@ -30,6 +30,37 @@ const TablaGenero: React.FC = () => {
 
         fetchGender();
     }, []);
+
+    const handleSubmit = async () => {
+        const randomID = Math.floor(Math.random() * (5 - 1 + 1)) + 1;
+
+        try {
+            const currentDateTime = new Date();
+            const maxIdResponse = await supabase
+                .from("genero")
+                .select("id_genero")
+                .order("id_genero", { ascending: false })
+                .limit(1);
+
+            const maxId = maxIdResponse.data?.[0]?.id_genero || 0;
+            const newId = maxId + 1;
+            // Crear el objeto de dirección con el nuevo ID
+            const UserInput: Gender = {
+                id_genero: newId,
+                genero,
+                fechacreacion: currentDateTime,
+                fk_creadopor: randomID,
+            };
+
+            await createGenero(UserInput);
+
+            const updateGender = await getGenero();
+            setGender(updateGender);
+            onClose();
+        } catch (error) {
+            console.error("Error creating genero:", error);
+        }
+    };
 
     const columns = [
         {
@@ -66,13 +97,20 @@ const TablaGenero: React.FC = () => {
     return (
         <>
             <Button type="primary" onClick={showDrawer}>
-                Añadir
+                Agregar genero
             </Button>
             <Table columns={columns} dataSource={gender} />
-            <Drawer title="Agregar genero" onClose={onClose} open={open} footer={<DrawerFooter />}>
-                <Form>
-                    <Form.Item label="Genero" name="Genero">
-                        <Input />
+            <Drawer title="Agregar Genero" onClose={onClose} open={open} footer={<DrawerFooter createRecord={handleSubmit} />}>
+                <Form onFinish={handleSubmit}>
+                    <Form.Item<Gender>
+                        label="Genero"
+                        name="genero"
+                        rules={[{ required: true, message: "Agrega el género" }]}
+                    >
+                        <Input value={genero} onChange={(e) => setGenero(e.target.value)} />
+                    </Form.Item>
+
+                    <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
                     </Form.Item>
                 </Form>
             </Drawer>

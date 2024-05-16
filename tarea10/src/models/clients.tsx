@@ -1,16 +1,16 @@
 export interface Client {
-    ID_Cliente: number;
-    Nombre: string;
-    Apellido: string;
-    Fecha_Nacimiento: Date;
-    ID_Genero: number;
-    Telefono: string;
-    Correo: string;
-    ID_Direccion: number;
-    FechaCreacion: Date;
-    fk_CreadoPor?: number | null;
-    FechaActu?: Date | null;
-    fk_ActualizadoPor?: number | null;
-    FechaEliminado?: Date | null;
-    fk_EliminadoPor?: number | null;
-}
+    id_cliente: number;
+    nombre: string;
+    apellido: string;
+    fechanac: Date;
+    idgenero: number;
+    telefono: string;
+    correo: string;
+    iddireccion: number;
+    fechacreacion: Date;
+    fk_creadopor?: number | null;
+    fechaactualizacion?: Date| null;
+    fk_actualizadopor?: number| null;
+    fechaeliminacion?: Date | null;
+    fk_eliminadopor?: number | null;
+    }

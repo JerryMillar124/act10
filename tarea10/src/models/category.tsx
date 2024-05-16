@@ -1,8 +1,8 @@
 export interface Category {
-    ID_Categoria: number;
-    Nombre: string;
-    FechaCreacion: Date;
-    fk_CreadoPor?: number | null;
+    id_categoria: number;
+    nombre: string;
+    fechacreacion?: Date | null;
+    fk_creadopor?: number | null;
     FechaActu?: Date | null;
     fk_ActualizadoPor?: number | null;
     FechaEliminado?: Date | null;

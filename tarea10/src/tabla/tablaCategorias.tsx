@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { getCategory } from "../services/category";
+import { getCategorias } from "../services/category";
 import { Button, Drawer, Form, Input, Table } from "antd";
 import { Category } from "../models/category";
 import DrawerFooter from "./DrawerFooter";
+import supabase from "../utils/supabase";
+import { createCategoria } from "../services/category";
 
 const TablaCategorias: React.FC = () => {
-
+    const [category, setCategory] = useState<Category[]>([]);
     const [open, setOpen] = useState(false);
+    const [nombre, setNombre] = useState<string>('');
+
 
     const showDrawer = () => {
         setOpen(true);
@@ -16,20 +20,51 @@ const TablaCategorias: React.FC = () => {
         setOpen(false);
     };
 
-    const [category, setCategory] = useState<Category[]>([]);
+
 
     useEffect(() => {
         const fetchCategory = async () => {
             try {
-                const categories = await getCategory();
+                const categories = await getCategorias();
                 setCategory(categories);
             } catch (error) {
-                console.error("Error fetching products:", error);
+                console.error("Error fetching categorias:", error);
             }
         };
 
         fetchCategory();
     }, []);
+
+    const handleSubmit = async () => {
+        const randomID = Math.floor(Math.random() * (5 - 1 + 1)) + 1;
+
+        try {
+            const currentDateTime = new Date();
+            const maxIdResponse = await supabase
+                .from("categorias")
+                .select("id_categoria")
+                .order("id_categoria", { ascending: false })
+                .limit(1);
+
+            const maxId = maxIdResponse.data?.[0]?.id_categoria || 0;
+            const newId = maxId + 1;
+            // Crear el objeto de dirección con el nuevo ID
+            const categoryInput: Category = {
+                id_categoria: newId,
+                nombre,
+                fechacreacion: currentDateTime,
+                fk_creadopor: randomID
+            };
+
+            await createCategoria(categoryInput);
+
+            const updateCategory = await getCategorias();
+            setCategory(updateCategory);
+            onClose();
+        } catch (error) {
+            console.error("Error creating categorias:", error);
+        }
+    };
 
     const columns = [
         {
@@ -83,13 +118,18 @@ const TablaCategorias: React.FC = () => {
     return (
         <>
             <Button type="primary" onClick={showDrawer}>
-                Añadir
+                Agregar categoria
             </Button>
             <Table columns={columns} dataSource={category} />
-            <Drawer title="Agregar categoria" onClose={onClose} open={open} footer={<DrawerFooter />}>
-                <Form>
-                    <Form.Item label="Categoria" name="Categoria">
-                        <Input />
+            <Drawer title="Agregar Categoría" onClose={onClose} open={open} footer={<DrawerFooter createRecord={handleSubmit} />}>
+                <Form onFinish={handleSubmit}>
+                    <Form.Item<Category>
+                        label="Nombre"
+                        name="nombre"
+                        rules={[{ required: true, message: "Agrega el nombre" }]}
+                    >
+                        <Input value={nombre} onChange={(e) => setNombre(e.target.value)} />          </Form.Item>
+                    <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
                     </Form.Item>
                 </Form>
             </Drawer>

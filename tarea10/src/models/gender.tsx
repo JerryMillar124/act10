@@ -1,10 +1,10 @@
 export interface Gender {
-    ID_Genero: number;
-    Genero: string;
-    FechaCreacion: Date;
-    FK_Creado_Por?: number | null;
-    FechaActu?: Date | null;
-    fk_ActualizadoPor?: number | null;
-    FechaEliminado?: Date | null;
-    fk_EliminadoPor?: number | null;
-}
+    id_genero: number;
+    genero: string;
+    fechacreacion: Date;
+    fk_creadopor?: number | null;
+    fechaact?: Date| null;
+    fk_actualizadopor?: number| null;
+    fechaeliminado?: Date | null;
+    fk_eliminadopor?: number | null;
+    }

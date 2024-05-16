@@ -10,3 +10,7 @@ export const getUsuarios = async (): Promise<User[]> => {
     }
     return data || [];
 }
+export const createUsuarios = async (usuario: User): Promise<void> => {
+    const { error } = await supabase.from("usuarios").insert(usuario);
+    if (error) throw error;
+}

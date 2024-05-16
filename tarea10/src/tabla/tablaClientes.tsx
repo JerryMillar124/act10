@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { getCliente } from "../services/clients";
-import { Button, DatePicker, Drawer, Form, Input, InputNumber, Space, Table } from "antd";
+import { getCliente, createClientes } from "../services/clients";
+import { Table, Drawer, Button, Form, Input, DatePicker, DatePickerProps, InputNumber, InputNumberProps } from "antd";
 import { Client } from "../models/clients";
 import DrawerFooter from "./DrawerFooter";
-import type { DatePickerProps } from 'antd';
+import supabase from "../utils/supabase";
 
 const TablaCliente: React.FC = () => {
+    const [clients, setCliente] = useState<Client[]>([]);
+    const [nombre, setNombre] = useState<string>('');
+    const [apellido, setApellido] = useState<string>('');
+    const [telefono, setTelefono] = useState<string>('');
+    const [correo, setCorreo] = useState<string>('');
+    const [fechanac, setfechaNacimiento] = useState<Date>(new Date());
+    const [idgenero, setIDGenero] = useState<number>(0);
+    const [iddireccion, setIDDireccion] = useState<number>(0);
 
     const [open, setOpen] = useState(false);
 
@@ -17,18 +25,8 @@ const TablaCliente: React.FC = () => {
         setOpen(false);
     };
 
-    const onDateChange: DatePickerProps['onChange'] = (date, dateString) => {
-        console.log("Date selected:", date, dateString);
-    };
-
-    const onNumberChange = (value: number | null) => {
-        console.log("Number input changed:", value);
-    };
-
-    const [Cliente, setCliente] = useState<Client[]>([]);
-
     useEffect(() => {
-        const fetchCliente = async () => {
+        const fetchClients = async () => {
             try {
                 const clientes = await getCliente();
                 setCliente(clientes);
@@ -37,8 +35,70 @@ const TablaCliente: React.FC = () => {
             }
         };
 
-        fetchCliente();
+        fetchClients();
     }, []);
+
+    const onChange: DatePickerProps['onChange'] = (date) => {
+        const selectedDate = new Date(date.year(), date.month() + 1, date.date());
+        setfechaNacimiento(selectedDate);
+    };
+
+    const handleSubmit = async () => {
+        const randomID = Math.floor(Math.random() * (5 - 1 + 1)) + 1;
+
+        try {
+            const currentDateTime = new Date();
+            // Consultar el ID máximo actual en la tabla direccion
+            const maxIdResponse = await supabase
+                .from("clientes")
+                .select("id_cliente")
+                .order("id_cliente", { ascending: false })
+                .limit(1);
+
+            const maxId = maxIdResponse.data?.[0]?.id_cliente || 0;
+            const newId = maxId + 1;
+
+            // Crear el objeto de dirección con el nuevo ID
+            const clientesInput: Client = {
+                id_cliente: newId,
+                nombre,
+                apellido,
+                fechanac: fechanac,
+                idgenero,
+                telefono,
+                correo,
+                iddireccion,
+                fechacreacion: currentDateTime,
+                fk_creadopor: randomID
+            };
+
+            // Insertar el nuevo registro en la base de datos
+            await createClientes(clientesInput);
+
+            // Actualizar la lista de direcciones después de la inserción
+            const updatedCLientes = await getCliente();
+            setCliente(updatedCLientes);
+            onClose();
+        } catch (error) {
+            console.error("Error creating clientes:", error);
+        }
+    };
+
+    const onChangeG: InputNumberProps['onChange'] = (value) => {
+        if (value !== null && typeof value === 'number') {
+            setIDGenero(value);
+        } else {
+            setIDGenero(0);
+        }
+    };
+
+    const onChangeD: InputNumberProps['onChange'] = (value) => {
+        if (value !== null && typeof value === 'number') {
+            setIDDireccion(value);
+        } else {
+            setIDDireccion(0);
+        }
+    };
 
     const columns = [
         {
@@ -110,33 +170,65 @@ const TablaCliente: React.FC = () => {
     return (
         <>
             <Button type="primary" onClick={showDrawer}>
-                Añadir
+                Agregar cliente
             </Button>
-            <Table columns={columns} dataSource={Cliente} />
-            <Drawer title="Agregar cliente" onClose={onClose} open={open} footer={<DrawerFooter />}>
-                <Form>
-                    <Form.Item label="Nombre" name="Nombre">
-                        <Input />
+            <Table columns={columns} dataSource={clients}
+            />
+            <Drawer title="Agregar Cliente" onClose={onClose} open={open} footer={<DrawerFooter createRecord={handleSubmit} />}>
+                <Form onFinish={handleSubmit}>
+                    <Form.Item<Client>
+                        label="Nombre"
+                        name="nombre"
+                        rules={[{ required: true, message: "Agrega el nombre" }]}
+                    >
+                        <Input value={nombre} onChange={(e) => setNombre(e.target.value)} />
                     </Form.Item>
-                    <Form.Item label="Apellido" name="Apellido">
-                        <Input />
+
+                    <Form.Item<Client>
+                        label="Apellido"
+                        name="apellido"
+                        rules={[{ required: true, message: "Agrega el apellido" }]}
+                    >
+                        <Input value={apellido} onChange={(e) => setApellido(e.target.value)} />
                     </Form.Item>
-                    <Form.Item label="Fecha de nacimiento" name="FechaNac">
-                        <Space direction="vertical">
-                            <DatePicker onChange={onDateChange} />
-                        </Space>
+
+                    <Form.Item<Client>
+                        label="Fecha_Nacimiento"
+                        name="fechanac"
+                        rules={[{ required: true, message: "Agrega fecha de nacimiento" }]}
+                    >
+                        <DatePicker onChange={onChange} />          </Form.Item>
+
+                    <Form.Item<Client>
+                        label="ID_Genero"
+                        name="idgenero"
+                        rules={[{ required: true, message: "Agrega ID de Genero" }]}
+                    >
+                        <InputNumber defaultValue={idgenero} onChange={onChangeG} />          </Form.Item>
+
+                    <Form.Item<Client>
+                        label="Telefono"
+                        name="telefono"
+                        rules={[{ required: true, message: "Agrega número de telefono" }]}
+                    >
+                        <Input value={telefono} onChange={(e) => setTelefono(e.target.value)} />
                     </Form.Item>
-                    <Form.Item label="ID Genero" name="ID_Genero">
-                        <InputNumber min={0} max={999} defaultValue={0} onChange={onNumberChange} />
+
+                    <Form.Item<Client>
+                        label="Correo"
+                        name="correo"
+                        rules={[{ required: true, message: "Agrega correo electrónico" }]}
+                    >
+                        <Input value={correo} onChange={(e) => setCorreo(e.target.value)} />
                     </Form.Item>
-                    <Form.Item label="Telefono" name="Telefono">
-                        <InputNumber min={0} max={9999999999} defaultValue={0} onChange={onNumberChange} />
-                    </Form.Item>
-                    <Form.Item label="Correo" name="Corrreo">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label="ID Direccion" name="ID_Direccion">
-                        <InputNumber min={0} max={999} defaultValue={0} onChange={onNumberChange} />
+
+                    <Form.Item<Client>
+                        label="ID_Direccion"
+                        name="iddireccion"
+                        rules={[{ required: true, message: "Agrega ID de la dirección" }]}
+                    >
+                        <InputNumber defaultValue={iddireccion} onChange={onChangeD} />          </Form.Item>
+                    <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
                     </Form.Item>
                 </Form>
             </Drawer>

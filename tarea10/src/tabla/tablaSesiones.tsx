@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { getSesiones } from "../services/sessions";
-import { Button, DatePicker, Drawer, Form, InputNumber, Space, Table } from "antd";
+import { getSesiones, createSesion } from "../services/sessions";
+import { Table, Drawer, Button, Form, InputNumberProps, DatePicker, DatePickerProps, InputNumber } from "antd";
 import { Session } from "../models/sessions";
-import type { DatePickerProps } from 'antd';
 import DrawerFooter from "./DrawerFooter";
+import supabase from "../utils/supabase";
+
 
 const TablaSesiones: React.FC = () => {
-
+    const [session, setSessions] = useState<Session[]>([]);
+    const [idcliente, setIDCliente] = useState<number>(0);
+    const [fecha_sesion, setFechaSesion] = useState<Date>(new Date());
+    const [fechaventa, setFechaVenta] = useState<Date>(new Date());
     const [open, setOpen] = useState(false);
 
     const showDrawer = () => {
@@ -16,16 +20,6 @@ const TablaSesiones: React.FC = () => {
     const onClose = () => {
         setOpen(false);
     };
-
-    const onDateChange: DatePickerProps['onChange'] = (date, dateString) => {
-        console.log("Date selected:", date, dateString);
-    };
-
-    const onNumberChange = (value: number | null) => {
-        console.log("Number input changed:", value);
-    };
-
-    const [session, setSessions] = useState<Session[]>([]);
 
     useEffect(() => {
         const fetchSession = async () => {
@@ -39,6 +33,61 @@ const TablaSesiones: React.FC = () => {
 
         fetchSession();
     }, []);
+
+    const handleSubmit = async () => {
+        const randomID = Math.floor(Math.random() * (5 - 1 + 1)) + 1;
+
+        try {
+            const currentDateTime = new Date();
+            // Consultar el ID máximo actual en la tabla direccion
+            const maxIdResponse = await supabase
+                .from("sesiones")
+                .select("id_sesion")
+                .order("id_sesion", { ascending: false })
+                .limit(1);
+
+            const maxId = maxIdResponse.data?.[0]?.id_sesion || 0;
+            const newId = maxId + 1;
+
+            // Crear el objeto de dirección con el nuevo ID
+            const sesionInput: Session = {
+                id_sesion: newId,
+                fecha_sesion,
+                idcliente,
+                fechaventa,
+                fechacreacion: currentDateTime,
+                fk_creadopor: randomID
+            };
+
+            // Insertar el nuevo registro en la base de datos
+            await createSesion(sesionInput);
+
+            // Actualizar la lista de direcciones después de la inserción
+            const updatedSesiones = await getSesiones();
+            setSessions(updatedSesiones);
+            onClose();
+        } catch (error) {
+            console.error("Error creating sesiones:", error);
+        }
+    };
+
+    const onChangeC: InputNumberProps['onChange'] = (value) => {
+        if (value !== null && typeof value === 'number') {
+            setIDCliente(value);
+        } else {
+            setIDCliente(0);
+        }
+    };
+
+    const onChangeS: DatePickerProps['onChange'] = (date) => {
+        const selectedDate = new Date(date.year(), date.month() + 1, date.date());
+        setFechaSesion(selectedDate);
+    };
+
+    const onChangeV: DatePickerProps['onChange'] = (date) => {
+        const selectedDate = new Date(date.year(), date.month() + 1, date.date());
+        setFechaVenta(selectedDate);
+    };
 
     const columns = [
         {
@@ -93,21 +142,38 @@ const TablaSesiones: React.FC = () => {
     return (
         <>
             <Button type="primary" onClick={showDrawer}>
-                Añadir
+                Agregar sesiones
             </Button>
             <Table columns={columns} dataSource={session} />
-            <Drawer title="Agregar fecha_sesion" onClose={onClose} open={open} footer={<DrawerFooter />}>
-                <Form>
-                    <Form.Item label="Fecha de sesion" name="FechaSesion">
-                        <Space direction="vertical">
-                            <DatePicker onChange={onDateChange} />
-                        </Space>
-                    </Form.Item>
-                    <Form.Item label="ID Producto" name="ID_Producto">
-                        <InputNumber min={0} max={99999} defaultValue={0} onChange={onNumberChange} />
+            <Drawer title="Agregar Sesiones" onClose={onClose} open={open} footer={<DrawerFooter createRecord={handleSubmit} />}>
+                <Form onFinish={handleSubmit}>
+
+                    <Form.Item<Session>
+                        label="Fecha_Sesion"
+                        name="fecha_sesion"
+                        rules={[{ required: false }]}
+                    >
+                        <DatePicker onChange={onChangeS} />          </Form.Item>
+
+                    <Form.Item<Session>
+                        label="ID_Cliente"
+                        name="idcliente"
+                        rules={[{ required: true, message: "Agrega ID de la sesión" }]}
+                    >
+                        <InputNumber defaultValue={idcliente} onChange={onChangeC} />          </Form.Item>
+
+                    <Form.Item<Session>
+                        label="Fecha_Venta"
+                        name="fechaventa"
+                        rules={[{ required: true, message: "Agrega fecha de la venta" }]}
+                    >
+                        <DatePicker onChange={onChangeV} />          </Form.Item>
+
+                    <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
                     </Form.Item>
                 </Form>
             </Drawer>
+
 
         </>
     );

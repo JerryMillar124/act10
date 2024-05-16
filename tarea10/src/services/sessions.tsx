@@ -4,10 +4,14 @@ import { Session } from "../models/sessions";
 
 export const getSesiones = async (): Promise<Session[]> => {
     const { data, error } = await supabase.from("sesiones").select();
-    if (error) {
-        console.error("Error fetching products:", error);
-    } else {
-        console.log("sesiones:", data); // Agrega esta línea para imprimir los datos
+    if (error) throw error;
+    else {
+        console.log("Session:", data);
     }
     return data || [];
+}
+
+export const createSesion = async (sesion: Session): Promise<void> => {
+    const { error } = await supabase.from("sesiones").insert(sesion);
+    if (error) throw error;
 }
